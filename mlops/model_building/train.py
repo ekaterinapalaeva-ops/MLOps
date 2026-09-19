@@ -42,7 +42,7 @@ xgb_model = xgb.XGBClassifier(scale_pos_weight=class_weight, random_state=42)
 # Fill in suitable values for each parameter based on your understanding of XGBoost tuning.
 param_grid = {
     'xgbclassifier__n_estimators': [50, 100, 200],        # Number of boosting trees. More trees can improve performance but increase training time.
-    'xgbclassifier__max_depth': [2, 3, 4],           # Maximum depth of each tree. Higher values increase model complexity and risk of overfitting.
+    'xgbclassifier__max_depth': [3, 5, 7],           # Maximum depth of each tree. Higher values increase model complexity and risk of overfitting.
     'xgbclassifier__colsample_bytree': [0.7, 0.9],    # Fraction of features sampled when building each tree.
     'xgbclassifier__colsample_bylevel': [0.7, 0.9],   # Fraction of features sampled at each tree level.
     'xgbclassifier__learning_rate': [0.01, 0.1, 0.2],       # Step size used during boosting. Smaller values may improve generalization but require more trees.
