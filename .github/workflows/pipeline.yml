@@ -6,6 +6,10 @@ on:
       - main  # Automatically triggers on push to the main branch
   workflow_dispatch:  # lets you click "Run workflow" in the Actions tab
 
+concurrency:
+  group: tourism-pipeline-main
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -71,9 +75,45 @@ jobs:
       - name: Model Building
         run: python mlops/model_building/train.py   # Replace blanks with the path to your model training script.
       - name: Commit Trained Model
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -e
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add mlops/deployment/*.joblib   # Replace with the path to your deployment folder.
-          git commit -m "Add trained model [skip ci]" || echo "No changes to commit"
-          git push
+
+          # Ensure the local branch has the latest remote history.
+          git fetch origin main
+          git rebase origin/main
+
+          git add mlops/deployment/*.joblib
+
+          # Do not fail when the model has not changed.
+          if git diff --cached --quiet; then
+            echo "No model changes to commit"
+            exit 0
+          fi
+
+          git commit -m "Add trained model [skip ci]"
+
+          # Handle a push that races with another workflow run.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+
+            echo "Push failed; rebasing onto the latest main branch"
+            git fetch origin main
+            git rebase origin/main
+          done
+
+          echo "Unable to push after multiple attempts"
+          exit 1
+       
+        #run: |
+        #  git config user.name "github-actions[bot]"
+        #  git config user.email "github-actions[bot]@users.noreply.github.com"
+        #  git add mlops/deployment/*.joblib   # Replace with the path to your deployment folder.
+        #  git commit -m "Add trained model [skip ci]" || echo "No changes to commit"
+        #  git push
